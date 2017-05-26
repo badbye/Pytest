@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Python</title>
+</head>
+<body>
+
+<div class="container">
+    <div class="row">
+        <div class="col-sm-6" id="intro">
+            <h2>Auto-test</h2>
+            <div v-html="compiledInput"></div>
+            <h2>Usage:</h2>
+            <div v-html="compiledUsage"></div>
+            <h2>Examples:</h2>
+            <div class="row example">
+                <button v-on:click="list_example" class="btn btn-primary">Test List</button>
+                <button v-on:click="array_example" class="btn btn-info">Test array</button>
+                <button v-on:click="df_example" class="btn btn-success">Test DataFrame</button>
+                <button v-on:click="reset" class="btn btn-warning">Reset</button>
+            </div>
+        </div>
+
+
+        <div class="col-sm-6"  id="test">
+            <textarea id="code" v-model="code" placeholder="Insert your python code" v-bind:class="{error: code_error}"></textarea>
+            <input v-model="name" placeholder="object to test" v-bind:class="{error: name_error}">
+            class: <select v-model="objclass" placeholder="object type" v-bind:class="{error: objclass_error}">
+              <option>DataFrame</option>
+              <option>array</option>
+              <option>list</option>
+            </select>
+            <button v-on:click="generated" class="btn btn-primary">Test Code</button>
+
+            <p v-if="error" style="color:red">Error: {{message}}</p>
+            <textarea v-if="!error" v-bind:value="test_code" id="test_code"></textarea>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    #code{
+        width: 100%;
+        min-height: 100px;
+    }
+    #test_code{
+        width: 100%;
+        min-height: 150px;
+    }
+    #test{
+        margin-top: 30px;
+    }
+    .error{
+        border-color: red;
+    }
+    .example{
+        margin-left: 10px !important;
+        margin-bottom: 10px;
+    }
+</style>
+<script src="//cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script>
+<link href="//cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+<script src="//cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="vue.min.js"></script>
+<script src="marked.js"></script>
+<script>
+var app = new Vue({
+    el: '#test',
+    data: {
+        url: '/',
+        error:false,
+        name: '',
+        name_error: false,
+        code: '',
+        code_error: false,
+        objclass: '',
+        objclass_error: false,
+        test_code: '',
+        message: ''
+    },
+    methods: {
+        generated: function (event) {
+            if (event) event.preventDefault();
+            if (app.check.error) {
+                app.error = app.check.error;
+                app.message = app.check.msg;
+                return
+            }
+            $.post(this.url, {name: this.name, class: this.objclass, code: this.code},
+                function (data) {
+                    app.error = data.error;
+                    if (app.error){
+                        app.message = data.msg;
+                    }else{
+                        app.test_code = data.code;
+                    }
+                }
+            );
+        },
+        reset: function () {
+            app.code_error = false;
+            app.name_error = false;
+            app.objclass_error = false;
+        }
+    },
+    computed: {
+        check: function () {
+            app.reset();
+            if (app.code == '') {
+                app.code_error = true;
+                return {error: true, msg: '"input your python code" first'};
+            }
+            if (app.name == '') {
+                app.name_error = true;
+                return {error: true, msg: 'Input the object to test'};
+            }
+            if (!app.objclass) {
+                app.objclass_error = true;
+                return {error: true, msg: '"class" does not selected'};
+            }
+            return {error: false};
+        }
+    }
+});
+
+var intro = new Vue({
+    "el": '#intro',
+    data: {
+        input: 'Generate test code automatically for python objects. Currently support\n' +
+            '- `list`\n' +
+            '- `numpy array`\n' +
+            '- `pandas DataFrame`\n',
+        usage: '1. Fill code in the first textarea, it is usually the `pre_code` and `answer` in the exercise.\n' +
+            '2. Fill in the variable name which to be tested\n' +
+            '3. Select the type of the variable\n' +
+            '4. Click the **Test Code** button.'
+
+    },
+    computed: {
+        compiledInput: function () {
+            return marked(this.input, { sanitize: true })
+        },
+        compiledUsage: function () {
+            return marked(this.usage, { sanitize: true })
+        }
+    },
+    methods:{
+        list_example: function () {
+            app.name = 'l';
+            app.code = 'l = [1, 2, 3]';
+            app.objclass = 'list';
+            app.test_code = '';
+        },
+        array_example: function () {
+            app.name = 'a';
+            app.code = 'import numpy as np\na = np.array([1, 2, 3])';
+            app.objclass = 'array';
+            app.test_code = '';
+        },
+        df_example: function () {
+            app.name = 'df';
+            app.code = 'import pandas as pd\ndf=pd.DataFrame({"a": [1,2,3], "b": [1.2, 3.1, 4.5], "c": ["hi", "hey", "hello"]})';
+            app.objclass = 'DataFrame';
+            app.test_code = '';
+        },
+        reset : function () {
+            app.name = '';
+            app.code = '';
+            app.objclass = '';
+            app.test_code = '';
+        }
+    }
+})
+</script>
+</body>
+</html>
